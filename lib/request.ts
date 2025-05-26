@@ -1,6 +1,7 @@
 import fetch, { HeadersInit } from 'node-fetch';
 import { stringify } from 'query-string';
 import { ConfigInterface } from './configInterface';
+import {RSAUtil} from "./RSAUtil";
 
 export type ConfigUrlOptions = {
   configServerUrl: string;
@@ -49,10 +50,23 @@ export class Request {
     return `${url}/configs/${appId}/${clusterName}/${namespaceName}?${stringify(params)}`;
   }
 
-  public static async fetchConfig<T>(url: string, headers?: HeadersInit): Promise<LoadConfigResp<T> | null> {
+  public static async fetchConfig<T>(url: string, privateKey:string|undefined, headers?: HeadersInit): Promise<LoadConfigResp<T> | null> {
     const response = await fetch(url, { headers });
     const status = response.status;
-    const text = await response.text();
+    let text = await response.text();
+
+    const response_headers = response.headers;
+    // 由服务端来决定是否要加密
+    if(typeof response_headers['HTX_CRYPTO_ENABLE'] === "string" && response_headers['HTX_CRYPTO_ENABLE'] === 'true'){
+      console.debug("apollo private key enabled.");
+      if (!privateKey){
+        throw new Error("no private key!!");
+      }
+      const decrypt = RSAUtil.decrypt(privateKey, Buffer.from(text));
+      console.debug("decrypt",decrypt);
+      text = decrypt;
+    }
+
     if (status === 304) return null;
     if (status != 200) throw new Error(`Http request error: ${status}, ${response.statusText}`);
     if (!text) return null;
