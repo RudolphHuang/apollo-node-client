@@ -13,7 +13,7 @@ export class ConfigService {
     appId: string;
     clusterName?: string;
     secret?: string;
-    privateKey?:string;
+    privateKey?: string;
   }) {
     this.options = options;
     this.options.clusterName = this.options.clusterName ? this.options.clusterName : CLUSTER_NAME_DEFAULT;
